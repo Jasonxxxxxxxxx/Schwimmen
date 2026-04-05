@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schwimmen 🃏</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
+:root{
+  --bg:#0d0a07;--felt:#1a3a2a;--felt2:#1f4030;
+  --gold:#c9a84c;--gold2:#e8c96a;--cream:#f5e6c8;
+  --text:#e8d5a3;--muted:#8a7a5a;--red:#c0392b;--darkred:#8b1a1a;
+  --card-w:70px;--card-h:100px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);font-family:'Crimson Pro',Georgia,serif;color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;}
+.screen{display:none;min-height:100vh;}
+.screen.active{display:flex;flex-direction:column;align-items:center;justify-content:center;}
+
+/* ══════════ LOBBY ══════════ */
+#lobbyScreen{background:radial-gradient(ellipse at 50% 30%,#2a1a0a,#0d0a07);padding:2rem;gap:1.5rem;position:relative;overflow:hidden;}
+#lobbyScreen::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 60px,rgba(201,168,76,.03) 60px,rgba(201,168,76,.03) 61px);pointer-events:none;}
+.logo{text-align:center;}
+.logo h1{font-family:'Playfair Display',serif;font-size:clamp(3rem,10vw,5.5rem);font-weight:900;letter-spacing:.08em;background:linear-gradient(135deg,#c9a84c,#e8c96a 40%,#c9a84c 60%,#a07830);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;}
+.logo h1 em{font-style:italic;}
+.logo p{font-size:1rem;color:var(--muted);letter-spacing:.25em;text-transform:uppercase;margin-top:.4rem;}
+.panel{background:rgba(255,255,255,.04);border:1px solid rgba(201,168,76,.2);border-radius:16px;padding:2rem 2.5rem;width:min(460px,95vw);backdrop-filter:blur(10px);}
+.panel h2{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--gold);margin-bottom:1.5rem;text-align:center;}
+label{display:block;font-size:.82rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;margin-top:1rem;}
+input{width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(201,168,76,.25);border-radius:8px;padding:.75rem 1rem;color:var(--cream);font-size:1.1rem;font-family:'Crimson Pro',serif;outline:none;transition:border-color .2s;}
+input:focus{border-color:var(--gold);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;background:linear-gradient(135deg,#c9a84c,#a07830);color:#0d0a07;border:none;border-radius:10px;padding:.85rem 1.8rem;font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:all .2s;width:100%;margin-top:1rem;}
+.btn:hover:not(:disabled){filter:brightness(1.15);transform:translateY(-1px);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn.secondary{background:rgba(201,168,76,.12);color:var(--gold);border:1px solid rgba(201,168,76,.3);}
+.btn.danger{background:linear-gradient(135deg,#6b1515,#c0392b);color:#fff;}
+.divider{text-align:center;color:var(--muted);margin:.8rem 0;font-size:.9rem;position:relative;}
+.divider::before,.divider::after{content:'';position:absolute;top:50%;width:38%;height:1px;background:rgba(201,168,76,.2);}
+.divider::before{left:0;}.divider::after{right:0;}
+.room-code-box{background:rgba(0,0,0,.5);border:2px solid var(--gold);border-radius:12px;padding:1rem;text-align:center;margin:1rem 0;cursor:pointer;transition:background .2s;}
+.room-code-box:hover{background:rgba(201,168,76,.07);}
+.room-code-box .code{font-family:'Playfair Display',serif;font-size:2.8rem;color:var(--gold2);letter-spacing:.4em;font-weight:900;}
+.room-code-box p{font-size:.8rem;color:var(--muted);margin-top:.3rem;}
+.player-list{margin-top:.8rem;display:flex;flex-direction:column;gap:.4rem;}
+.player-item{display:flex;align-items:center;gap:.7rem;padding:.5rem .8rem;background:rgba(255,255,255,.04);border-radius:8px;border:1px solid rgba(201,168,76,.1);font-size:.95rem;}
+.player-item .dot{width:8px;height:8px;border-radius:50%;background:#2ecc71;flex-shrink:0;}
+.player-item.host .dot{background:var(--gold);}
+.err{color:#e74c3c;font-size:.85rem;text-align:center;margin-top:.5rem;min-height:1.2em;}
+.spinner{width:22px;height:22px;border:3px solid rgba(201,168,76,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:.4rem auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ══════════ GAME SCREEN ══════════ */
+#gameScreen{
+  background:var(--felt);
+  background-image:radial-gradient(ellipse at 50% 50%,rgba(26,70,42,.8),rgba(10,25,18,.95)),
+    repeating-linear-gradient(0deg,transparent,transparent 30px,rgba(0,0,0,.05) 30px,rgba(0,0,0,.05) 31px),
+    repeating-linear-gradient(90deg,transparent,transparent 30px,rgba(0,0,0,.05) 30px,rgba(0,0,0,.05) 31px);
+  padding:0;min-height:100vh;align-items:stretch;justify-content:stretch;
+}
+#gameLayout{display:flex;flex-direction:column;width:100%;height:100vh;padding:.4rem;gap:.35rem;}
+
+/* Header */
+#gameHeader{display:flex;align-items:center;justify-content:space-between;padding:.4rem .8rem;background:rgba(0,0,0,.4);border-radius:10px;border:1px solid rgba(201,168,76,.15);gap:.5rem;flex-wrap:wrap;flex-shrink:0;}
+.g-title{font-family:'Playfair Display',serif;font-style:italic;font-size:1.05rem;color:var(--gold);}
+#turnMsg{font-family:'Playfair Display',serif;font-size:.9rem;color:var(--cream);text-align:center;flex:1;}
+#turnMsg.my-turn{color:var(--gold2);animation:gpulse 1.6s ease-in-out infinite;}
+@keyframes gpulse{0%,100%{text-shadow:none;}50%{text-shadow:0 0 14px rgba(232,201,106,.7);}}
+.hand-score{background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.25);border-radius:6px;padding:.2rem .7rem;font-size:.85rem;color:var(--gold2);white-space:nowrap;}
+
+/* Opponents row */
+#opponentsArea{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;flex-shrink:0;}
+.opp-box{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.4rem .6rem;display:flex;flex-direction:column;align-items:center;gap:.2rem;min-width:80px;}
+.opp-box.active-turn{border-color:rgba(201,168,76,.55);box-shadow:0 0 14px rgba(201,168,76,.2);}
+.opp-box.closed-player{border-color:rgba(231,76,60,.5);box-shadow:0 0 10px rgba(231,76,60,.15);}
+.opp-name{font-size:.67rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;}
+.opp-cards{display:flex;gap:3px;}
+.mini-card{width:20px;height:30px;border-radius:3px;background:linear-gradient(135deg,#1a0a2e,#0d1a3a);border:1px solid rgba(201,168,76,.4);}
+.opp-lives{font-size:.72rem;display:flex;gap:2px;}
+
+/* Center area */
+#centerArea{display:flex;justify-content:center;align-items:center;gap:2.5rem;padding:.3rem;flex-wrap:wrap;flex-shrink:0;}
+.pile-zone{display:flex;flex-direction:column;align-items:center;gap:.3rem;}
+.pile-lbl{font-size:.62rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);}
+/* Field cards – drop target */
+#fieldZone{display:flex;gap:8px;align-items:center;min-height:var(--card-h);padding:6px 8px;border-radius:10px;border:2px dashed rgba(201,168,76,.15);transition:border-color .2s,background .2s;}
+#fieldZone.drop-ready{border-color:rgba(201,168,76,.6);background:rgba(201,168,76,.06);}
+/* Deck */
+.deck-pile{width:var(--card-w);height:var(--card-h);position:relative;cursor:default;}
+.card-back-face{width:var(--card-w);height:var(--card-h);border-radius:8px;background:linear-gradient(135deg,#1a0a2e,#0d1a3a);border:2px solid rgba(201,168,76,.5);box-shadow:3px 3px 0 rgba(0,0,0,.5),5px 5px 0 rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font-size:1.8rem;}
+.deck-count{font-size:.65rem;color:var(--muted);text-align:center;}
+
+/* Cards */
+.card{width:var(--card-w);height:var(--card-h);border-radius:8px;background:#fdf8f0;border:1.5px solid #d4c5a0;box-shadow:0 4px 14px rgba(0,0,0,.5);display:flex;flex-direction:column;justify-content:space-between;padding:4px 5px;user-select:none;position:relative;transition:transform .15s,box-shadow .15s,border-color .15s;}
+.card.red .cr,.card.red .cs{color:var(--darkred);}
+.card.black .cr,.card.black .cs{color:#1a1a1a;}
+.cr{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;line-height:1;}
+.cs{font-size:1.2rem;line-height:1;}
+.cc{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.65rem;pointer-events:none;}
+.cb{position:absolute;bottom:4px;right:5px;transform:rotate(180deg);display:flex;flex-direction:column;align-items:center;pointer-events:none;}
+/* Hand cards: draggable */
+.hand-card{cursor:grab;}
+.hand-card:active{cursor:grabbing;}
+.hand-card.dragging{opacity:.25;transform:scale(.95);}
+.hand-card.selected-h{transform:translateY(-10px);border-color:var(--gold2);box-shadow:0 0 20px rgba(232,201,106,.7),0 8px 20px rgba(0,0,0,.5);}
+/* Field cards: drop zone */
+.field-card{cursor:pointer;}
+.field-card:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(0,0,0,.6);}
+.field-card.drop-target{border-color:var(--gold);box-shadow:0 0 16px rgba(201,168,76,.7),0 4px 14px rgba(0,0,0,.4);}
+
+/* Player area */
+#playerArea{display:flex;flex-direction:column;align-items:center;gap:.3rem;flex-shrink:0;}
+#myInfo{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;justify-content:center;}
+.my-name{font-family:'Playfair Display',serif;font-style:italic;font-size:1rem;color:var(--gold2);}
+.my-lives{display:flex;gap:3px;font-size:1rem;}
+.life.lost{opacity:.18;filter:grayscale(1);}
+#myHand{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:.3rem 0;}
+
+/* Action hint */
+#actionHint{font-size:.78rem;color:var(--gold);text-align:center;padding:.15rem;min-height:1em;flex-shrink:0;}
+
+/* Action bar */
+#actionBar{display:flex;gap:.45rem;flex-wrap:wrap;justify-content:center;padding:.3rem .4rem;background:rgba(0,0,0,.38);border-top:1px solid rgba(201,168,76,.12);flex-shrink:0;}
+.aBtn{padding:.48rem 1rem;border-radius:8px;border:1px solid rgba(201,168,76,.3);background:rgba(201,168,76,.08);color:var(--gold);font-family:'Playfair Display',serif;font-size:.83rem;cursor:pointer;transition:all .15s;font-weight:700;}
+.aBtn:hover:not(:disabled){background:rgba(201,168,76,.2);transform:translateY(-1px);}
+.aBtn:disabled{opacity:.25;cursor:not-allowed;}
+.aBtn.red-btn{border-color:rgba(192,57,43,.4);color:#e74c3c;background:rgba(192,57,43,.08);}
+.aBtn.red-btn:hover:not(:disabled){background:rgba(192,57,43,.2);}
+.aBtn.blue-btn{border-color:rgba(52,152,219,.4);color:#5dade2;background:rgba(52,152,219,.08);}
+.aBtn.blue-btn:hover:not(:disabled){background:rgba(52,152,219,.2);}
+
+/* Log */
+#gameLog{max-height:52px;overflow-y:auto;padding:.25rem .7rem;background:rgba(0,0,0,.3);border-top:1px solid rgba(255,255,255,.04);flex-shrink:0;}
+.log-line{font-size:.68rem;color:var(--muted);padding:.05rem 0;}
+.log-line.imp{color:var(--gold2);}
+.log-line.bad{color:#e74c3c;}
+
+/* Toast */
+#toast{position:fixed;top:1rem;left:50%;transform:translateX(-50%) translateY(-130px);background:rgba(10,8,5,.97);border:1px solid var(--gold);border-radius:10px;padding:.6rem 1.3rem;font-family:'Playfair Display',serif;font-size:.92rem;color:var(--cream);z-index:9999;transition:transform .4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.7);max-width:90vw;text-align:center;}
+#toast.show{transform:translateX(-50%) translateY(0);}
+
+/* Drag ghost */
+#dragGhost{position:fixed;pointer-events:none;z-index:9999;opacity:.88;transform:rotate(5deg) scale(1.06);display:none;}
+
+/* Overlays */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.87);display:flex;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(5px);}
+.overlay.hide{display:none;}
+.modal{background:linear-gradient(160deg,#1a1710,#0d0a07);border:1px solid rgba(201,168,76,.3);border-radius:16px;padding:2rem 2.4rem;max-width:420px;width:93%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.9),0 0 30px rgba(201,168,76,.1);}
+.modal h2{font-family:'Playfair Display',serif;font-size:1.65rem;color:var(--gold);margin-bottom:.4rem;}
+.modal p{color:var(--muted);font-size:.88rem;margin-bottom:1rem;line-height:1.6;}
+.result-row{display:flex;justify-content:space-between;align-items:center;padding:.42rem .8rem;margin-bottom:.3rem;background:rgba(255,255,255,.04);border-radius:7px;font-size:.87rem;gap:.5rem;}
+.result-row.loser{background:rgba(192,57,43,.15);border:1px solid rgba(192,57,43,.3);}
+.result-row.best{background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.2);}
+.r-score{color:var(--gold2);font-weight:600;white-space:nowrap;}
+.r-lives{font-size:.82rem;white-space:nowrap;}
+.r-hand{font-size:.7rem;color:var(--muted);}
+.modal .btn{margin-top:.55rem;}
+
+/* Conn status */
+#connStatus{position:fixed;bottom:.5rem;right:.5rem;font-size:.67rem;color:var(--muted);display:flex;align-items:center;gap:.3rem;background:rgba(0,0,0,.5);padding:.22rem .55rem;border-radius:20px;border:1px solid rgba(255,255,255,.08);}
+#connDot{width:7px;height:7px;border-radius:50%;background:#2ecc71;transition:background .3s;}
+#connDot.err{background:#e74c3c;}
+
+@media(max-width:500px){
+  :root{--card-w:58px;--card-h:84px;}
+  .cr{font-size:.88rem;}.cs{font-size:1rem;}.cc{font-size:1.35rem;}
+  #centerArea{gap:1.2rem;}
+  .aBtn{font-size:.76rem;padding:.42rem .75rem;}
+}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div id="dragGhost"></div>
+<div id="connStatus"><span id="connDot"></span><span id="connTxt">Verbinden…</span></div>
+
+<!-- ══════════ LOBBY ══════════ -->
+<div id="lobbyScreen" class="screen active">
+  <div class="logo"><h1>Schwim<em>men</em></h1><p>Das klassische Kartenspiel</p></div>
+
+  <div class="panel" id="panelName">
+    <h2>Willkommen</h2>
+    <label>Dein Name</label>
+    <input type="text" id="inputName" placeholder="Name eingeben…" maxlength="16" autocomplete="off">
+    <div class="err" id="nameErr"></div>
+    <button class="btn" onclick="goOptions()">Weiter →</button>
+  </div>
+
+  <div class="panel" id="panelOptions" style="display:none">
+    <h2>Spielraum</h2>
+    <button class="btn" onclick="createRoom()">🏠 Raum erstellen</button>
+    <div class="divider">oder</div>
+    <label>Raumcode eingeben</label>
+    <input type="text" id="inputCode" placeholder="z.B. ABC123" maxlength="6" style="text-transform:uppercase;letter-spacing:.2em;text-align:center" autocomplete="off">
+    <div class="err" id="joinErr"></div>
+    <button class="btn secondary" onclick="joinRoom()">🔗 Raum beitreten</button>
+  </div>
+
+  <div class="panel" id="panelWait" style="display:none">
+    <h2>Warteraum</h2>
+    <div class="room-code-box" onclick="copyCode()" title="Klicken zum Kopieren">
+      <div class="code" id="displayCode">------</div>
+      <p id="copyHint">Klicken um zu kopieren · Teile den Code mit deinen Freunden!</p>
+    </div>
+    <label>Spieler im Raum</label>
+    <div class="player-list" id="playerList"></div>
+    <div class="err" id="waitErr"></div>
+    <button class="btn" id="btnStart" onclick="startGame()" disabled style="margin-top:1rem">Spiel starten ▶</button>
+    <button class="btn danger" onclick="leaveRoom()" style="margin-top:.4rem">Verlassen</button>
+  </div>
+</div>
+
+<!-- ══════════ GAME ══════════ -->
+<div id="gameScreen" class="screen">
+  <div id="gameLayout">
+    <div id="gameHeader">
+      <div class="g-title">🃏 Schwimmen</div>
+      <div id="turnMsg">Warte…</div>
+      <div class="hand-score" id="handScore">0 Pkt</div>
+    </div>
+
+    <div id="opponentsArea"></div>
+
+    <div id="centerArea">
+      <div class="pile-zone">
+        <div class="pile-lbl">Nachziehstapel</div>
+        <div class="deck-pile">
+          <div class="card-back-face">🂠</div>
+        </div>
+        <div class="deck-count" id="deckCount">–</div>
+      </div>
+      <div class="pile-zone">
+        <div class="pile-lbl">Tauschfeld (Mitte)</div>
+        <div id="fieldZone"></div>
+      </div>
+    </div>
+
+    <div id="actionHint"></div>
+
+    <div id="playerArea">
+      <div id="myInfo">
+        <div class="my-name" id="myNameDisp">Du</div>
+        <div class="my-lives" id="myLives"></div>
+      </div>
+      <div id="myHand"></div>
+    </div>
+
+    <div id="actionBar">
+      <button class="aBtn" id="btnSwapAll" onclick="doSwapAll()" disabled>↔ Alle tauschen</button>
+      <button class="aBtn" id="btnSchieben" onclick="doSchieben()" disabled>⏩ Schieben</button>
+      <button class="aBtn blue-btn" id="btnMischen" onclick="doMischen()" disabled>🔀 Mischen</button>
+      <button class="aBtn red-btn" id="btnSchliessen" onclick="doSchliessen()" disabled>🔒 Schließen</button>
+    </div>
+
+    <div id="gameLog"></div>
+  </div>
+</div>
+
+<!-- ══════════ OVERLAYS ══════════ -->
+<div class="overlay hide" id="ovRoundEnd">
+  <div class="modal">
+    <h2 id="reTitle">Runde vorbei!</h2>
+    <p id="reDesc"></p>
+    <div id="reResults"></div>
+    <button class="btn" id="btnNextRound">Nächste Runde 🃏</button>
+  </div>
+</div>
+<div class="overlay hide" id="ovGameOver">
+  <div class="modal">
+    <h2 id="goTitle">Spiel vorbei!</h2>
+    <p id="goDesc"></p>
+    <button class="btn" onclick="location.reload()">Neues Spiel</button>
+  </div>
+</div>
+<div class="overlay hide" id="ovAnnounce">
+  <div class="modal">
+    <h2 id="annTitle">!</h2>
+    <p id="annDesc"></p>
+    <button class="btn secondary" onclick="closeOv('ovAnnounce')">OK</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// PeerJS
+// ══════════════════════════════════════════════════════
+const _ps=document.createElement('script');
+_ps.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+document.head.appendChild(_ps);
+_ps.onload=initPeer;
+
+// ══════════════════════════════════════════════════════
+// GLOBALS
+// ══════════════════════════════════════════════════════
+let myName='',myId='',roomCode='',isHost=false;
+let peer=null,connections={};
+let players=[];   // [{id,name,lives}]
+let gameState=null;
+let myIndex=-1;
+let gs=null; // host master state
+
+// Drag state
+let dragCard=null,dragEl=null,dragSrcIdx=-1;
+let ghostEl=null;
+
+// ══════════════════════════════════════════════════════
+// NETWORK
+// ══════════════════════════════════════════════════════
+function initPeer(){
+  peer=new Peer({config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}});
+  peer.on('open',id=>{myId=id;setConn('','Verbunden');});
+  peer.on('error',()=>setConn('err','Fehler'));
+  peer.on('disconnected',()=>setConn('err','Getrennt'));
+  peer.on('connection',conn=>{conn.on('open',()=>{connections[conn.peer]=conn;conn.on('data',d=>handleMsg(d,conn.peer));conn.on('close',()=>{delete connections[conn.peer];if(!gs)broadcastLobby();});});});
+}
+function setConn(cls,txt){document.getElementById('connDot').className=cls;document.getElementById('connTxt').textContent=txt;}
+function send(conn,m){try{conn.send(m);}catch(e){}}
+function broadcast(m,ex){for(const[id,c]of Object.entries(connections))if(id!==ex)send(c,m);}
+function sendToHost(m){const c=Object.values(connections)[0];if(c)send(c,m);}
+
+function handleMsg(msg,from){
+  switch(msg.type){
+    case 'join_req':    hostHandleJoin(msg,from);       break;
+    case 'lobby_state': clientLobby(msg);               break;
+    case 'start_game':  clientStart(msg);               break;
+    case 'game_state':  clientApplyState(msg.state);    break;
+    case 'round_end':   clientRoundEnd(msg);            break;
+    case 'game_over':   clientGameOver(msg);            break;
+    case 'announce':    clientAnnounce(msg);            break;
+    case 'action':      if(isHost)hostAction(msg,from); break;
+    case 'next_round':  if(isHost)hostNextRound();      break;
+    case 'leave':       handleLeave(from);              break;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// LOBBY
+// ══════════════════════════════════════════════════════
+function goOptions(){
+  const n=document.getElementById('inputName').value.trim();
+  if(!n){document.getElementById('nameErr').textContent='Bitte gib einen Namen ein.';return;}
+  myName=n;
+  document.getElementById('panelName').style.display='none';
+  document.getElementById('panelOptions').style.display='';
+}
+function createRoom(){
+  if(!peer||!myId){toast('Noch nicht verbunden…');return;}
+  isHost=true;
+  roomCode=Math.random().toString(36).substr(2,6).toUpperCase();
+  players=[{id:myId,name:myName,lives:3}];myIndex=0;
+  showWaiting();
+}
+function joinRoom(){
+  const code=document.getElementById('inputCode').value.trim().toUpperCase();
+  if(code.length<4){document.getElementById('joinErr').textContent='Bitte Code eingeben.';return;}
+  if(!peer||!myId){toast('Noch nicht verbunden…');return;}
+  isHost=false;roomCode=code;
+  document.getElementById('joinErr').innerHTML='<div class="spinner"></div>';
+  let conn;
+  try{conn=peer.connect('SCHWIMM'+code,{reliable:true});}
+  catch(e){document.getElementById('joinErr').textContent='Verbindung fehlgeschlagen.';return;}
+  const t=setTimeout(()=>{document.getElementById('joinErr').textContent='Raum nicht gefunden.';conn.close();},8000);
+  conn.on('open',()=>{clearTimeout(t);connections['host']=conn;conn.on('data',d=>handleMsg(d,'host'));send(conn,{type:'join_req',name:myName,id:myId});});
+  conn.on('error',()=>{clearTimeout(t);document.getElementById('joinErr').textContent='Raum nicht gefunden.';});
+}
+function createHostPeer(){
+  if(peer)peer.destroy();
+  peer=new Peer('SCHWIMM'+roomCode,{config:{iceServers:[{urls:'stun:stun.l.google.com:19302'}]}});
+  peer.on('open',()=>{myId='SCHWIMM'+roomCode;players[0].id=myId;setConn('','Host');broadcastLobby();});
+  peer.on('connection',conn=>{conn.on('open',()=>{connections[conn.peer]=conn;conn.on('data',d=>handleMsg(d,conn.peer));conn.on('close',()=>{delete connections[conn.peer];if(!gs)broadcastLobby();});});});
+  peer.on('error',err=>{if(err.type==='unavailable-id')document.getElementById('waitErr').textContent='Code vergeben.';});
+}
+function showWaiting(){
+  document.getElementById('panelOptions').style.display='none';
+  document.getElementById('panelWait').style.display='';
+  document.getElementById('displayCode').textContent=roomCode;
+  if(isHost){createHostPeer();renderLobbyPlayers();}
+}
+function hostHandleJoin(msg,fromId){
+  if(players.length>=7){send(connections[fromId],{type:'lobby_state',error:'Raum voll.',players:[]});return;}
+  if(gs){send(connections[fromId],{type:'lobby_state',error:'Spiel läuft!',players:[]});return;}
+  players.push({id:fromId,name:msg.name,lives:3});broadcastLobby();
+}
+function broadcastLobby(){renderLobbyPlayers();broadcast({type:'lobby_state',players:players.map(p=>({id:p.id,name:p.name,lives:p.lives})),roomCode});}
+function clientLobby(msg){
+  if(msg.error){document.getElementById('joinErr').textContent=msg.error;return;}
+  players=msg.players.map(p=>({...p}));myIndex=players.findIndex(p=>p.id===myId);roomCode=msg.roomCode;
+  document.getElementById('panelOptions').style.display='none';
+  document.getElementById('panelWait').style.display='';
+  document.getElementById('displayCode').textContent=roomCode;
+  renderLobbyPlayers();
+}
+function renderLobbyPlayers(){
+  const list=document.getElementById('playerList');list.innerHTML='';
+  players.forEach((p,i)=>{
+    const d=document.createElement('div');d.className='player-item'+(i===0?' host':'');
+    d.innerHTML=`<div class="dot"></div><span>${p.name}</span>${i===0?' <small style="color:var(--muted)">(Host)</small>':''}`;
+    list.appendChild(d);
+  });
+  const btn=document.getElementById('btnStart');
+  if(isHost){btn.disabled=players.length<2;btn.style.display='';}
+  else{btn.style.display='none';}
+}
+function copyCode(){
+  navigator.clipboard.writeText(roomCode).then(()=>{
+    document.getElementById('copyHint').textContent='✓ Kopiert!';
+    setTimeout(()=>document.getElementById('copyHint').textContent='Klicken um zu kopieren · Teile den Code mit deinen Freunden!',2000);
+  });
+}
+function leaveRoom(){
+  if(isHost)broadcast({type:'leave'});else sendToHost({type:'leave'});
+  for(const c of Object.values(connections))c.close();
+  connections={};players=[];gs=null;location.reload();
+}
+function handleLeave(fromId){
+  const i=players.findIndex(p=>p.id===fromId);
+  if(i!==-1){toast(`${players[i].name} hat das Spiel verlassen`);players.splice(i,1);if(isHost&&!gs)broadcastLobby();}
+}
+
+// ══════════════════════════════════════════════════════
+// CARDS
+// ══════════════════════════════════════════════════════
+const SUITS=['♥','♦','♠','♣'];
+const RANKS=['A','K','Q','J','10','9','8','7','6'];
+const RED=new Set(['♥','♦']);
+const LOW=new Set(['6','7','8','9']); // eligible for Mischen
+
+function cardVal(r){return r==='A'?11:['K','Q','J'].includes(r)?10:parseInt(r);}
+
+function calcScore(hand){
+  if(!hand||hand.length<3)return 0;
+  // 3 equal ranks = 30.5
+  if(hand[0].rank===hand[1].rank&&hand[1].rank===hand[2].rank)return 30.5;
+  // 3 aces = special – 33 as sentinel
+  if(hand.every(c=>c.rank==='A'))return 33;
+  // best same-suit sum
+  const bySuit={};
+  for(const c of hand){bySuit[c.suit]=(bySuit[c.suit]||0)+cardVal(c.rank);}
+  return Math.max(...Object.values(bySuit));
+}
+
+function makeDeck(){
+  const d=[];
+  for(const s of SUITS)for(const r of RANKS)d.push({suit:s,rank:r,id:r+s});
+  return shuffle(d);
+}
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=0|Math.random()*(i+1);[b[i],b[j]]=[b[j],b[i]];}return b;}
+
+function displayScore(sc){
+  if(sc===33)return '3 Asse!';
+  if(sc===30.5)return '30,5';
+  return sc.toString();
+}
+
+// Check if field has 3 aces
+function fieldHas3Aces(field){return field.length===3&&field.every(c=>c.rank==='A');}
+// Check if hand has 3 aces
+function handHas3Aces(hand){return hand.every(c=>c.rank==='A');}
+// Check if field eligible for Mischen (all cards 6-9)
+function canMischen(field){return field.length===3&&field.every(c=>LOW.has(c.rank));}
+
+function cardHTML(c,extraClass=''){
+  const col=RED.has(c.suit)?'red':'black';
+  return `<div class="card ${col} ${extraClass}" data-id="${c.id}">
+    <div><div class="cr">${c.rank}</div><div class="cs">${c.suit}</div></div>
+    <div class="cc">${c.suit}</div>
+    <div class="cb"><div class="cr">${c.rank}</div><div class="cs">${c.suit}</div></div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════
+// GAME START
+// ══════════════════════════════════════════════════════
+function startGame(){
+  if(!isHost||players.length<2)return;
+  for(const p of players)p.lives=3;
+  broadcast({type:'start_game',players:players.map(p=>({id:p.id,name:p.name,lives:p.lives}))});
+  clientStart({players:players.map(p=>({id:p.id,name:p.name,lives:p.lives}))});
+  hostNewRound();
+}
+function clientStart(msg){
+  players=msg.players.map(p=>({...p}));myIndex=players.findIndex(p=>p.id===myId);
+  showGameScreen();
+}
+
+function hostNewRound(){
+  const deck=makeDeck();
+  const hands={},lives={},names={};
+  const order=players.map(p=>p.id);
+  for(const p of players){hands[p.id]=[deck.pop(),deck.pop(),deck.pop()];lives[p.id]=p.lives;names[p.id]=p.name;}
+  const field=[deck.pop(),deck.pop(),deck.pop()];
+  gs={
+    deck,field,hands,lives,
+    turnOrder:order,currentTurn:order[0],
+    phase:'play',          // 'play' | 'lastRound' | 'end'
+    closer:null,           // peerId of who closed
+    lastRoundDone:[],      // who already went in last round
+    schiebenCount:0,       // consecutive Schieben counter
+    schiebenStart:null,    // who started the Schieben chain
+    roundNum:(gs?gs.roundNum+1:1),
+    playerNames:names
+  };
+  // Check field for 3 aces immediately
+  if(fieldHas3Aces(gs.field)){hostFieldAceEnd();}
+  else{pushState();}
+}
+
+// ══════════════════════════════════════════════════════
+// PUSH STATE TO PLAYERS
+// ══════════════════════════════════════════════════════
+function pushState(){
+  for(const p of players){
+    const view=buildView(p.id);
+    if(p.id===myId)clientApplyState(view);
+    else if(connections[p.id])send(connections[p.id],{type:'game_state',state:view});
+  }
+}
+function buildView(pid){
+  const v=JSON.parse(JSON.stringify(gs));
+  for(const id in v.hands){if(id!==pid)v.hands[id]=v.hands[id].map(()=>null);}
+  v.myPeerId=pid;
+  return v;
+}
+
+// ══════════════════════════════════════════════════════
+// HOST ACTION HANDLER
+// ══════════════════════════════════════════════════════
+function hostAction(msg,fromId){
+  if(!gs||gs.phase==='end')return;
+  if(gs.currentTurn!==fromId)return;
+  const act=msg.action;
+
+  if(act==='swapOne'){
+    // swap hand card [handIdx] with field card [fieldIdx]
+    const hi=msg.handIdx,fi=msg.fieldIdx;
+    if(hi<0||hi>=gs.hands[fromId].length||fi<0||fi>=gs.field.length)return;
+    const tmp=gs.hands[fromId][hi];
+    gs.hands[fromId][hi]=gs.field[fi];
+    gs.field[fi]=tmp;
+    gs.schiebenCount=0;gs.schiebenStart=null;
+    checkSpecialAfterSwap(fromId);
+    return;
+  }
+  if(act==='swapAll'){
+    const tmp=gs.hands[fromId];gs.hands[fromId]=[...gs.field];gs.field=[...tmp];
+    gs.schiebenCount=0;gs.schiebenStart=null;
+    checkSpecialAfterSwap(fromId);
+    return;
+  }
+  if(act==='schieben'){
+    gs.schiebenCount=(gs.schiebenCount||0)+1;
+    if(gs.schiebenStart===null)gs.schiebenStart=fromId;
+    // Did everyone schieben? (full circle back to schiebenStart)
+    if(gs.schiebenCount>=gs.turnOrder.length){
+      // Replace field cards
+      if(gs.deck.length<3){
+        // Not enough cards – just continue
+        gs.schiebenCount=0;gs.schiebenStart=null;
+        hostAdvance(fromId);pushState();return;
+      }
+      for(let i=0;i<3;i++)gs.field[i]=gs.deck.pop();
+      gs.schiebenCount=0;gs.schiebenStart=null;
+      // Turn stays with who started schieben
+      gs.currentTurn=gs.schiebenStart||gs.turnOrder[0];
+      // Check field aces
+      if(fieldHas3Aces(gs.field)){hostFieldAceEnd();return;}
+      addLog('Alle haben geschoben – neue Feldkarten!','imp');
+      broadcast({type:'announce',title:'Alle geschoben!',desc:'Neue Karten liegen auf dem Tauschfeld.'});
+      pushState();
+    } else {
+      hostAdvance(fromId);pushState();
+    }
+    return;
+  }
+  if(act==='mischen'){
+    if(!canMischen(gs.field))return;
+    // Remove field cards, draw 3 new, player plays again (don't advance turn)
+    for(let i=0;i<3;i++)gs.deck.push(gs.field[i]);
+    gs.deck=shuffle(gs.deck);
+    if(gs.deck.length<3){pushState();return;}
+    gs.field=[gs.deck.pop(),gs.deck.pop(),gs.deck.pop()];
+    gs.schiebenCount=0;gs.schiebenStart=null;
+    if(fieldHas3Aces(gs.field)){hostFieldAceEnd();return;}
+    addLog(`${gs.playerNames[fromId]} hat gemischt.`,'imp');
+    pushState(); // same player goes again
+    return;
+  }
+  if(act==='schliessen'){
+    gs.closer=fromId;gs.phase='lastRound';
+    gs.lastRoundDone=[fromId];
+    addLog(`${gs.playerNames[fromId]} hat geschlossen!`,'bad');
+    broadcast({type:'announce',title:'🔒 Geschlossen!',desc:`${gs.playerNames[fromId]} hat geschlossen. Jeder hat noch einen letzten Zug!`});
+    clientAnnounce({title:'🔒 Geschlossen!',desc:`${gs.playerNames[fromId]} hat geschlossen. Jeder hat noch einen letzten Zug!`});
+    hostAdvance(fromId);pushState();
+    return;
+  }
+}
+
+function checkSpecialAfterSwap(fromId){
+  const sc=calcScore(gs.hands[fromId]);
+  // 3 Aces on hand: all others lose 1 life, round ends
+  if(sc===33){
+    addLog(`${gs.playerNames[fromId]} hat 3 Asse! Alle anderen verlieren ein Leben.`,'bad');
+    for(const pid of gs.turnOrder){if(pid!==fromId)gs.lives[pid]=Math.max(0,gs.lives[pid]-1);}
+    for(const p of players)p.lives=gs.lives[p.id]||0;
+    broadcast({type:'announce',title:'👑 3 Asse!',desc:`${gs.playerNames[fromId]} hat 3 Asse auf der Hand! Alle anderen verlieren ein Leben.`});
+    clientAnnounce({title:'👑 3 Asse!',desc:`${gs.playerNames[fromId]} hat 3 Asse auf der Hand! Alle anderen verlieren ein Leben.`});
+    hostEndRound(true);return;
+  }
+  // 31: round ends
+  if(sc===31){
+    addLog(`${gs.playerNames[fromId]} hat 31! Runde vorbei.`,'imp');
+    hostEndRound(false);return;
+  }
+  // Field has 3 aces
+  if(fieldHas3Aces(gs.field)){hostFieldAceEnd();return;}
+
+  if(gs.phase==='lastRound'){
+    gs.lastRoundDone.push(fromId); // already added after advance, but set explicitly
+    if(gs.turnOrder.every(p=>gs.lastRoundDone.includes(p))){hostEndRound(false);return;}
+  }
+  hostAdvance(fromId);pushState();
+}
+
+function hostFieldAceEnd(){
+  addLog('3 Asse auf dem Feld! Alle verlieren 1 Leben.','bad');
+  for(const pid of gs.turnOrder)gs.lives[pid]=Math.max(0,gs.lives[pid]-1);
+  for(const p of players)p.lives=gs.lives[p.id]||0;
+  broadcast({type:'announce',title:'🃏 3 Asse auf dem Feld!',desc:'Alle Spieler verlieren 1 Leben!'});
+  clientAnnounce({title:'🃏 3 Asse auf dem Feld!',desc:'Alle Spieler verlieren 1 Leben!'});
+  hostEndRound(true);
+}
+
+function hostAdvance(fromId){
+  const ord=gs.turnOrder;
+  const idx=ord.indexOf(fromId);
+  const nxt=ord[(idx+1)%ord.length];
+  if(gs.phase==='lastRound'){
+    if(!gs.lastRoundDone.includes(nxt))gs.lastRoundDone.push(nxt);
+    if(ord.every(p=>gs.lastRoundDone.includes(p))){hostEndRound(false);return;}
+    // Skip closer? No – closer still plays their swapped hand but can only schieben in lastRound
+    gs.currentTurn=nxt;
+  } else {
+    gs.currentTurn=nxt;
+  }
+}
+
+function hostEndRound(skipScoring){
+  gs.phase='end';
+  const scores={};
+  for(const pid of gs.turnOrder)scores[pid]=calcScore(gs.hands[pid]);
+
+  let losers=[];
+  if(!skipScoring){
+    const minScore=Math.min(...Object.values(scores));
+    losers=gs.turnOrder.filter(pid=>scores[pid]===minScore);
+    // Closer with equally low score loses instead
+    if(gs.closer){
+      const closerScore=scores[gs.closer];
+      // Did the closer tie with the minimum?
+      if(closerScore===minScore){
+        // Closer loses, others with same min do not
+        losers=losers.filter(pid=>pid!==gs.closer);
+        // Only closer loses
+        gs.lives[gs.closer]=Math.max(0,gs.lives[gs.closer]-1);
+      } else if(closerScore<minScore){
+        // closer IS the loser anyway
+        losers=[gs.closer];
+        gs.lives[gs.closer]=Math.max(0,gs.lives[gs.closer]-1);
+      } else {
+        // closer did fine, normal losers lose
+        for(const pid of losers)gs.lives[pid]=Math.max(0,gs.lives[pid]-1);
+      }
+    } else {
+      for(const pid of losers)gs.lives[pid]=Math.max(0,gs.lives[pid]-1);
+    }
+  }
+  for(const p of players)p.lives=gs.lives[p.id]||0;
+  gs.turnOrder=gs.turnOrder.filter(pid=>gs.lives[pid]>0);
+  const alive=players.filter(p=>p.lives>0);
+
+  const payload={scores,hands:gs.hands,losers,closer:gs.closer,playerNames:gs.playerNames,lives:gs.lives,roundNum:gs.roundNum,skipScoring};
+  if(alive.length<=1){
+    const winner=alive[0]||players[0];
+    const gop={winnerName:gs.playerNames[winner.id]||winner.name};
+    broadcast({type:'game_over',...gop});clientGameOver(gop);return;
+  }
+  broadcast({type:'round_end',...payload});clientRoundEnd(payload);pushState();
+}
+
+function hostNextRound(){
+  closeOv('ovRoundEnd');
+  if(!isHost){sendToHost({type:'next_round'});return;}
+  players=players.filter(p=>p.lives>0);
+  hostNewRound();
+}
+
+// ══════════════════════════════════════════════════════
+// CLIENT: apply state + render
+// ══════════════════════════════════════════════════════
+function clientApplyState(state){gameState=state;renderGame();}
+
+function clientRoundEnd(msg){
+  closeOv('ovRoundEnd');closeOv('ovAnnounce');
+  document.getElementById('reTitle').textContent=`Runde ${msg.roundNum} vorbei!`;
+  let desc='';
+  if(msg.skipScoring)desc='Sonderregel aktiv – kein normales Punktezählen.';
+  else if(msg.closer)desc=`${msg.playerNames[msg.closer]} hat geschlossen.`;
+  document.getElementById('reDesc').textContent=desc;
+  const res=document.getElementById('reResults');res.innerHTML='';
+  if(!msg.skipScoring){
+    const sorted=Object.entries(msg.scores).sort((a,b)=>b[1]-a[1]);
+    const maxSc=Math.max(...Object.values(msg.scores));
+    for(const[pid,sc]of sorted){
+      const name=msg.playerNames[pid]||'?';
+      const lives=msg.lives[pid];
+      const isLoser=msg.losers.includes(pid);
+      let livesStr='';for(let i=0;i<3;i++)livesStr+=i<lives?'🪙':'💀';
+      const hand=msg.hands[pid];
+      const handStr=hand&&hand[0]?hand.map(c=>`${c.rank}${c.suit}`).join(' '):'';
+      const row=document.createElement('div');
+      row.className='result-row'+(isLoser?' loser':sc===maxSc?' best':'');
+      row.innerHTML=`<span>${name} <span class="r-hand">${handStr}</span></span><span class="r-score">${displayScore(sc)} Pkt</span><span class="r-lives">${livesStr}</span>`;
+      res.appendChild(row);
+    }
+  } else {
+    // Show lives
+    for(const p of players){
+      const pid=p.id;const lives=msg.lives[pid];
+      let livesStr='';for(let i=0;i<3;i++)livesStr+=i<lives?'🪙':'💀';
+      const hand=msg.hands[pid];
+      const handStr=hand&&hand[0]?hand.map(c=>`${c.rank}${c.suit}`).join(' '):'';
+      const row=document.createElement('div');
+      row.innerHTML=`<span>${msg.playerNames[pid]} <span class="r-hand">${handStr}</span></span><span class="r-lives">${livesStr}</span>`;
+      row.className='result-row';
+      res.appendChild(row);
+    }
+  }
+  const btn=document.getElementById('btnNextRound');
+  btn.onclick=hostNextRound;
+  if(isHost){btn.disabled=false;btn.textContent='Nächste Runde 🃏';}
+  else{btn.disabled=true;btn.textContent='Warte auf Host…';}
+  document.getElementById('ovRoundEnd').classList.remove('hide');
+}
+
+function clientGameOver(msg){
+  closeOv('ovRoundEnd');
+  document.getElementById('goTitle').textContent=`🏆 ${msg.winnerName} gewinnt!`;
+  document.getElementById('goDesc').textContent='Herzlichen Glückwunsch! Das Spiel ist vorbei.';
+  document.getElementById('ovGameOver').classList.remove('hide');
+}
+
+function clientAnnounce(msg){
+  // Don't show if round-end overlay already open
+  if(!document.getElementById('ovRoundEnd').classList.contains('hide'))return;
+  document.getElementById('annTitle').textContent=msg.title;
+  document.getElementById('annDesc').textContent=msg.desc;
+  document.getElementById('ovAnnounce').classList.remove('hide');
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER GAME
+// ══════════════════════════════════════════════════════
+function showGameScreen(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('gameScreen').classList.add('active');
+}
+
+function renderGame(){
+  const st=gameState;if(!st)return;
+  const mid=st.myPeerId;
+  const isMT=st.currentTurn===mid;
+  const inLastRound=st.phase==='lastRound';
+  const canAct=isMT&&st.phase!=='end';
+
+  // Name & lives
+  document.getElementById('myNameDisp').textContent=(st.playerNames&&st.playerNames[mid])||myName;
+  const lives=st.lives[mid]||0;
+  let lH='';for(let i=0;i<3;i++)lH+=`<span class="life${i<lives?'':' lost'}">🪙</span>`;
+  document.getElementById('myLives').innerHTML=lH;
+
+  // Score
+  const hand=st.hands[mid]||[];
+  const sc=hand[0]?calcScore(hand):0;
+  document.getElementById('handScore').textContent=displayScore(sc)+' Pkt';
+
+  // Turn msg
+  const te=document.getElementById('turnMsg');
+  if(isMT){
+    te.textContent=inLastRound?'🔒 Letzter Zug – Du bist dran!':'🎴 Du bist dran!';
+    te.className='my-turn';
+  }else{
+    const tn=(st.playerNames&&st.playerNames[st.currentTurn])||'?';
+    te.textContent=inLastRound?`🔒 Letzte Runde – ${tn} ist dran`:`⏳ ${tn} ist dran`;
+    te.className='';
+  }
+
+  // Opponents
+  const oa=document.getElementById('opponentsArea');oa.innerHTML='';
+  for(const pid in st.hands){
+    if(pid===mid)continue;
+    const name=(st.playerNames&&st.playerNames[pid])||'?';
+    const lv=st.lives[pid]||0;
+    const act=st.currentTurn===pid;
+    const closed=st.closer===pid;
+    let ls='';for(let i=0;i<3;i++)ls+=`<span${i<lv?'':' style="opacity:.18"'}>🪙</span>`;
+    oa.innerHTML+=`<div class="opp-box${act?' active-turn':''}${closed?' closed-player':''}">
+      <div class="opp-name">${name}${closed?' 🔒':''}</div>
+      <div class="opp-cards"><div class="mini-card"></div><div class="mini-card"></div><div class="mini-card"></div></div>
+      <div class="opp-lives">${ls}</div>
+    </div>`;
+  }
+
+  // Deck
+  document.getElementById('deckCount').textContent=st.deck.length+' Karten';
+
+  // Field cards
+  renderField(st,canAct);
+
+  // My hand
+  renderHand(st,canAct);
+
+  // Buttons
+  const fieldAllLow=canMischen(st.field);
+  document.getElementById('btnSwapAll').disabled=!canAct;
+  document.getElementById('btnSchieben').disabled=!canAct;
+  document.getElementById('btnMischen').disabled=!canAct||!fieldAllLow;
+  document.getElementById('btnSchliessen').disabled=!canAct||inLastRound||!!st.closer;
+
+  // Hint
+  const hint=document.getElementById('actionHint');
+  if(isMT&&canAct){
+    if(fieldAllLow)hint.textContent='💡 Mischen möglich (alle Feldkarten 6–9) · oder Karte per Drag & Drop tauschen';
+    else hint.textContent='💡 Ziehe eine Handkarte auf eine Feldkarte zum Tauschen';
+  }else{hint.textContent='';}
+}
+
+function renderField(st,canAct){
+  const fz=document.getElementById('fieldZone');fz.innerHTML='';
+  for(let i=0;i<st.field.length;i++){
+    const c=st.field[i];if(!c)continue;
+    const el=document.createElement('div');
+    el.innerHTML=cardHTML(c,'field-card');
+    const card=el.firstChild;
+    card.dataset.fieldIdx=i;
+    // Drop target for drag
+    if(canAct){
+      card.addEventListener('dragover',e=>{e.preventDefault();card.classList.add('drop-target');fz.classList.add('drop-ready');});
+      card.addEventListener('dragleave',()=>{card.classList.remove('drop-target');fz.classList.remove('drop-ready');});
+      card.addEventListener('drop',e=>{
+        e.preventDefault();card.classList.remove('drop-target');fz.classList.remove('drop-ready');
+        if(dragSrcIdx===-1)return;
+        doAction({action:'swapOne',handIdx:dragSrcIdx,fieldIdx:i});
+        dragSrcIdx=-1;dragCard=null;
+      });
+      // Touch drop target – handled globally in touchend
+      card.addEventListener('touchenter',()=>card.classList.add('drop-target'));
+    }
+    fz.appendChild(card);
+  }
+}
+
+function renderHand(st,canAct){
+  const he=document.getElementById('myHand');he.innerHTML='';
+  const hand=st.hands[st.myPeerId]||[];
+  for(let i=0;i<hand.length;i++){
+    const c=hand[i];if(!c)continue;
+    const wrap=document.createElement('div');
+    wrap.innerHTML=cardHTML(c,'hand-card');
+    const card=wrap.firstChild;
+    card.dataset.handIdx=i;
+    if(canAct){
+      // Mouse drag
+      card.draggable=true;
+      card.addEventListener('dragstart',e=>{
+        dragSrcIdx=i;dragCard=c;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed='move';
+        document.getElementById('fieldZone').classList.add('drop-ready');
+      });
+      card.addEventListener('dragend',()=>{
+        card.classList.remove('dragging');
+        document.getElementById('fieldZone').classList.remove('drop-ready');
+        document.querySelectorAll('.field-card').forEach(fc=>fc.classList.remove('drop-target'));
+      });
+      // Touch drag
+      card.addEventListener('touchstart',touchStartCard,{passive:true});
+    }
+    he.appendChild(card);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// TOUCH DRAG
+// ══════════════════════════════════════════════════════
+let touchDragIdx=-1,touchGhostEl=null,touchOriginEl=null;
+
+function touchStartCard(e){
+  const card=e.currentTarget;
+  touchDragIdx=parseInt(card.dataset.handIdx);
+  touchOriginEl=card;
+  // Create ghost
+  touchGhostEl=card.cloneNode(true);
+  Object.assign(touchGhostEl.style,{position:'fixed',pointerEvents:'none',zIndex:'9999',opacity:'.88',transform:'rotate(5deg) scale(1.06)',width:card.offsetWidth+'px',height:card.offsetHeight+'px'});
+  document.body.appendChild(touchGhostEl);
+  card.classList.add('dragging');
+  const t=e.touches[0];
+  posGhost(t.clientX,t.clientY);
+}
+document.addEventListener('touchmove',e=>{
+  if(touchDragIdx===-1||!touchGhostEl)return;
+  e.preventDefault();
+  const t=e.touches[0];
+  posGhost(t.clientX,t.clientY);
+  // Highlight field card under finger
+  document.querySelectorAll('.field-card').forEach(fc=>fc.classList.remove('drop-target'));
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  if(el){const fc=el.closest('.field-card');if(fc)fc.classList.add('drop-target');}
+},{passive:false});
+document.addEventListener('touchend',e=>{
+  if(touchDragIdx===-1)return;
+  const t=e.changedTouches[0];
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  if(el){
+    const fc=el.closest('.field-card');
+    if(fc){const fi=parseInt(fc.dataset.fieldIdx);doAction({action:'swapOne',handIdx:touchDragIdx,fieldIdx:fi});}
+  }
+  document.querySelectorAll('.field-card').forEach(fc=>fc.classList.remove('drop-target'));
+  document.getElementById('fieldZone').classList.remove('drop-ready');
+  if(touchGhostEl){touchGhostEl.remove();touchGhostEl=null;}
+  if(touchOriginEl){touchOriginEl.classList.remove('dragging');touchOriginEl=null;}
+  touchDragIdx=-1;
+});
+function posGhost(x,y){
+  if(!touchGhostEl)return;
+  touchGhostEl.style.left=(x-parseInt(touchGhostEl.style.width)/2)+'px';
+  touchGhostEl.style.top=(y-parseInt(touchGhostEl.style.height)/2-10)+'px';
+}
+
+// ══════════════════════════════════════════════════════
+// BUTTON ACTIONS
+// ══════════════════════════════════════════════════════
+function doAction(msg){
+  if(isHost)hostAction(msg,myId);
+  else sendToHost({type:'action',...msg});
+}
+function doSwapAll(){doAction({action:'swapAll'});}
+function doSchieben(){doAction({action:'schieben'});}
+function doMischen(){doAction({action:'mischen'});}
+function doSchliessen(){doAction({action:'schliessen'});}
+
+// ══════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════
+function closeOv(id){document.getElementById(id).classList.add('hide');}
+let toastT;
+function toast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3000);
+}
+function addLog(txt,cls=''){
+  const log=document.getElementById('gameLog');
+  const d=document.createElement('div');d.className='log-line '+(cls||'');d.textContent=txt;
+  log.appendChild(d);log.scrollTop=log.scrollHeight;
+}
+
+document.getElementById('inputName').addEventListener('keydown',e=>{if(e.key==='Enter')goOptions();});
+document.getElementById('inputCode').addEventListener('keydown',e=>{if(e.key==='Enter')joinRoom();});
+document.getElementById('inputCode').addEventListener('input',function(){this.value=this.value.toUpperCase();});
+</script>
+</body>
+</html>
